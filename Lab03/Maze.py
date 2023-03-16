@@ -4,99 +4,88 @@ import numpy
 import math
 import matplotlib.pyplot as plt
 
-safe_fields = [
-    [1, 1], [1, 2], [1, 3], [1, 5], [1, 6], [1, 7], [1, 9], [1, 10],
-    [2, 3], [2, 4], [2, 5], [2, 7], [2, 10],
-    [3, 1], [3, 2], [3, 3], [3, 5], [3, 7], [3, 8], [3, 9], [3, 10],
-    [4, 1], [4, 3], [4, 6], [4, 7], [4, 10],
-    [5, 1], [5, 2], [5, 5], [5, 6], [5, 7], [5, 9], [5, 10],
-    [6, 1], [6, 2], [6, 3], [6, 4], [6, 5], [6, 7], [6, 8], [6, 9],
-    [7, 1], [7, 3], [7, 4], [7, 7], [7, 9], [7, 10],
-    [8, 1], [8, 5], [8, 6], [8, 7], [8, 10],
-    [9, 1], [9, 3], [9, 6], [9, 8], [9, 10],
-    [10, 1], [10, 3], [10, 4], [10, 5], [10, 6], [10, 7], [10, 8], [10, 9], [10, 10]
+maze = [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+        [0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0], 
+        [0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0], 
+        [0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0], 
+        [0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0], 
+        [0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0], 
+        [0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0], 
+        [0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0], 
+        [0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0], 
+        [0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0], 
+        [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 ]
 
+# 0 - down, 1 - up, 2 - left, 3 - right
 gene_space = [0, 1, 2, 3]
+
+start_position = (1, 1)
+end_position = (10, 10)
+
+position = [0, 0]
+
+def check_colission(x, y):
+    if x > 11 or y > 11 or x < 0 or y < 0:
+        return True
+    if maze[x][y] == 0:
+       return True
+    return False
 
 # Find the shortest path from start to end with max steps = 30
 def fitness_func(solution, solution_idx):
-    # Starting position
-    position = [1, 1]
-    # Remember explored positions
-    explored_positions = []
-    # Evaluate fitness of solution
-    fitness = 0
-    # Remember number of steps
+    end_row, end_col = end_position
+    row, column = start_position
     steps = 0
     
-    
     for move in solution:
+        if row == end_row and column == end_col:
+            position[0] = row
+            position[1] = column
+            return steps * -1
+        if move == 0:
+            if not check_colission(row + 1, column):
+                row += 1
+        if move == 1:
+            if not check_colission(row - 1, column):
+                row -= 1
+        if move == 2:
+            if not check_colission(row, column - 1):
+                column -= 1
+        if move == 3:
+            if not check_colission(row, column + 1):
+                column += 1
         steps += 1
-        new_position = position.copy()
-        
-        # Decode move
-        if move == 0:  # Up
-            new_position[0] -= 1
-        elif move == 1:  # Down
-            new_position[0] += 1
-        elif move == 2:  # Left
-            new_position[1] -= 1
-        elif move == 3:  # Right
-            new_position[1] += 1
-            
-            
-        if new_position in safe_fields:
-            # Update position
-            position = new_position
-            # Update fitness
-            fitness += new_position[0] * 2 + new_position[1] * 2
-        else:
-            fitness -= 5
-        
-        
-        if new_position in explored_positions:
-            fitness -= 20  # Penalize revisiting a position
-        else:
-            fitness += 10  # Reward exploring new positions
-            
-            
-        if position == [10, 10]:
-            fitness += 300  # Reward reaching the end
-            break  # Reached the end
-        # if steps == 30:
-        #     break  # Maximum path length reached
-        
-        explored_positions.append(new_position)
-        
-        
-    return fitness
+
+    #Distance from end position - 1 (to avoid multiplying steps by 0) * steps (to penalize longer paths)
+    return (((abs(end_col - column) + abs(end_row - row)) * -1) - 1) * steps 
 
 
 fitness_function = fitness_func
-sol_per_pop = 5000
-num_parents_mating = 10
-num_generations = 1000
-keep_parents = 5
-initial_population = numpy.random.randint(0, 4, (10, 30))
+sol_per_pop = 200
+num_genes = 30
+num_parents_mating = 70
+num_generations = 500
+keep_parents = 50
 parent_selection_type = "tournament"
 crossover_type = "two_points"
 mutation_type = "scramble"
-mutation_percent_genes = 4
+mutation_percent_genes = 6
 
 
 ga_instance = pygad.GA(gene_space=gene_space,
-                    num_generations=num_generations,
-                    num_parents_mating=num_parents_mating,
-                    fitness_func=fitness_function,
-                    # sol_per_pop=sol_per_pop,
-                    # num_genes=30,
-                    parent_selection_type=parent_selection_type,
-                    keep_parents=keep_parents,
-                    crossover_type=crossover_type,
-                    mutation_type=mutation_type,
-                    mutation_percent_genes=mutation_percent_genes,
-                    initial_population=initial_population)
+                       num_generations=num_generations,
+                       num_parents_mating=num_parents_mating,
+                       fitness_func=fitness_function,
+                       sol_per_pop=sol_per_pop,
+                       num_genes=num_genes,
+                       parent_selection_type=parent_selection_type,
+                       keep_parents=keep_parents,
+                       crossover_type=crossover_type,
+                       mutation_type=mutation_type,
+                       mutation_percent_genes=mutation_percent_genes)
 ga_instance.run()
 
 
@@ -109,3 +98,6 @@ best_fitness = ga_instance.best_solution()[1]
 # Print the best solution and its fitness value
 print("Best solution:", best_solution)
 print("Best fitness:", best_fitness)
+print("Steps taken:", -best_fitness)
+print("Final position: ",  position)
+# ga_instance.plot_fitness()
